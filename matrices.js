@@ -39,10 +39,7 @@ export class Matrix {
         let V1 = new Array(A1.length);
         
         for (let i = 0; i < V1.length; i++) {
-            let V1Row = new Array(1);
-            V1Row[0] = A1[i];
-
-            V1[i] = V1Row;
+            V1[i] = [A1[i]];
         }
 
         return V1;
@@ -155,8 +152,8 @@ export class Matrix {
         let M2 = new Array(M1.length);
 
         for (let i = 0; i < M1.length; i++) {
-            M1Row = M1[i];
-            M2Row = new Array(M1[0].length);
+            let M1Row = M1[i];
+            let M2Row = new Array(M1[0].length);
 
             for (let j = 0; j < M2Row.length; j++) {
                 M2Row[j] = M1Row[j] * s;
@@ -194,6 +191,29 @@ export class Matrix {
         }
 
         return M3
+    }
+
+    static multH(M1, M2) {
+        if (M1.length !== M2.length || M1[0].length != M2[0].length) {
+            console.log(`Attempted to hadamard a ${M1.length}x${M1[0].length} Matrix by a ${M2.length}x${M2[0].length} Matrix`);
+            return undefined;
+        }
+
+        let M3 = new Array(M1.length);
+
+        for (let i = 0; i < M1.length; i++) {
+            let M1Row = M1[i];
+            let M2Row = M2[i];
+            let M3Row = new Array(M1[0].length);
+
+            for (let j = 0; j < M3Row.length; j++) {
+                M3Row[j] = M1Row[j] * M2Row[j];
+            }
+
+            M3[i] = M3Row;
+        }
+
+        return M3;
     }
 
     static transpose(M1) {
