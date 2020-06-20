@@ -1,2 +1,2 @@
 # Neural-Networks
-Attempting neural networks in JS using assisted learning.
+Attempting neural networks in JS using Supervised Learning.
