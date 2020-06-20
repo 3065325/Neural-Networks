@@ -35,6 +35,20 @@ export class Matrix {
         return M1;
     }
 
+    static fromRow(M1, i) {
+        return Array.from(M1[i]);
+    }
+
+    static fromColumn(M1, j) {
+        let A1 = new Array(M1.length);
+
+        for (let i = 0; i < A1.length; i++) {
+            A1[i] = M1[i][j];
+        }
+
+        return Matrix.toVector(A1);
+    }
+
     static toVector(A1) {
         let V1 = new Array(A1.length);
         
@@ -148,7 +162,7 @@ export class Matrix {
         return M3;
     }
 
-    static multS(M1, s) {
+    static multS(s, M1) {
         let M2 = new Array(M1.length);
 
         for (let i = 0; i < M1.length; i++) {
@@ -160,6 +174,30 @@ export class Matrix {
             }
 
             M2[i] = M2Row;
+        }
+
+        return M2;
+    }
+
+    static multRow(M1, s, i) {
+        let M2 = Array.from(M1);
+        let M2Row = M2[i];
+
+        for (let j = 0; j < M2Row.length; j++) {
+            M2Row[j] = M2Row[j] * s;
+        }
+
+        M2[i] = M2Row;
+
+        return M2;
+    }
+
+
+    static multColumn(M1, s, j) {
+        let M2 = Array.from(M1);
+
+        for (let i = 0; i < M2.length; i++) {
+            M2[i][j] = M2[i][j] * s;
         }
 
         return M2;
@@ -256,8 +294,19 @@ export class Matrix {
         return M3;
     }
 
+    static magnitude(M1) {
+        let M2 = Matrix.transpose(M1);
+        let A1 = new Array(M2.length);
+        
+        for (let i = 0; i < A1.length; i++) {
+            A1[i] = Math.sqrt(M2[i].reduce((a, b) => a + b**2, 0));
+        }
+
+        return A1;
+    }
+
     static dot(M1, M2) {
-        return Matrix.mult(Matrix.transpose(M1), M2);
+        return Matrix.multM(Matrix.transpose(M1), M2);
     }
 
     static minor(M1, i, j) {
@@ -338,7 +387,7 @@ export class Matrix {
             M2[i] = M2Row;
         }
 
-        return Matrix.multS(Matrix.transpose(M2), 1 / M1Det);
+        return Matrix.multS(1 / M1Det, Matrix.transpose(M2));
     }
 
     static print(M1) {

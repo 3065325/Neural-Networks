@@ -1,7 +1,7 @@
 "use strict"
 
 import {
-    Matrix as M, Matrix
+    Matrix as M
 } from "./matrices.js"
 
 function sigmoid(x) {
@@ -9,7 +9,7 @@ function sigmoid(x) {
 }
 
 function pseudoSigmoidDer(x) {
-    return x*(1 - x);
+    return x * (1 - x);
 }
 
 export class NeuralNetwork {
@@ -27,55 +27,60 @@ export class NeuralNetwork {
         }
     }
 
-    feedLayer(inputs, layer) {
-        if (layer >= this.layerAmounts.length - 1) {
-            console.log(`Can't feed from layer ${layer} into non-existant layer ${layer + 1} when final layer is ${this.layerAmounts.length - 1}`);
-            return;
+    feedForward(inputs) {
+        let A1 = new Array(this.layerAmounts.length);
+        A1[0] = M.toVector(inputs);
+
+        for (let i = 0; i < A1.length - 1; i++) {
+            A1[i + 1] = M.map(M.add(this.B[i], M.multM(this.W[i], A1[i])), sigmoid);
         }
 
-        let A1 = M.map(M.add(this.B[layer], M.multM(this.W[layer], inputs)), sigmoid);
         return A1;
     }
 
-    feedForward(inputs) {
-        let A1 = this.feedLayer(M.toVector(inputs), 0);
+    backPropogate(activations, targets, learnRate) {
+        let A = activations;
 
-        for (let i = 1; i < this.layerAmounts.length - 1; i++) {
-            A1 = this.feedLayer(A1, i);
+        let a1 = A[A.length - 1];
+        let a2 = A[A.length - 2];
+        let w = this.W[A.length - 2];
+        let b = this.B[A.length - 2];
+
+        let E = M.sub(M.toVector(targets), a1);
+
+        let G = M.multS(learnRate, M.multH(E, M.map(a1, pseudoSigmoidDer)));
+
+        let a2T = M.transpose(a2);
+        let dW = M.multM(G, a2T);
+        let dB = G
+        this.W[A.length - 2] = M.add(dW, w);
+        this.B[A.length - 2] = M.add(dB, b);
+
+        for (let i = A.length - 3; i >= 0; i--) {
+            a1 = A[i + 1];
+            a2 = A[i];
+            w = this.W[i];
+            b = this.B[i];
+
+            E = M.multM(M.transpose(this.W[i + 1]), E);
+
+            G = M.multS(learnRate, M.multH(E, M.map(a1, pseudoSigmoidDer)));
+
+            a2T = M.transpose(a2);
+            dW = M.multM(G, a2T);
+            dB = G;
+            this.W[i] = M.add(dW, w);
+            this.B[i] = M.add(dB, b);
         }
-        
-        return Matrix.toArray(A1);
+
     }
 
-    // propogateLayer(outputs, layer, learnRate) {
-    //     if (layer <= this.layerAmounts.length - 1) {
-    //         console.log(`Can't feed from layer ${layer} into non-existant layer ${layer + 1} when final layer is ${this.layerAmounts.length - 1}`);
-    //         return;
-    //     }
-        
-    //     let E = 
+    train(inputs, targets, learnRate) {
+        this.backPropogate(this.feedForward(inputs), targets, learnRate);
+    }
 
-    //     let dW = Matrix.multS(learnRate, );
-    //     return E1;
-    // }
-
-    // backPropogate(errors, learnRate) {
-
-    // }
-
-    adjust(inputs, targets, learnRate) {
-        let O = Matrix.toVector(this.feedForward(inputs));
-
-        let E = Matrix.sub(Matrix.toVector(targets), O);
-
-        let G = Matrix.multS(learnRate, Matrix.multM(E, Matrix.map(O, pseudoSigmoidDer)));
-
-        let W = this.W[this.W.length - 1];
-        let dW = Matrix.multM(G, Matrix.transpose(W));
-        this.W[this.W.length -1] = Matrix.add(W, dW)
-
-        for (let i = this.W.length - 2; i >= 0; i++) {
-            
-        }
+    feed(inputs) {
+        let A = this.feedForward(inputs);
+        return M.toArray(A[A.length-1]);
     }
 }
