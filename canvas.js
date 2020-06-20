@@ -1,14 +1,10 @@
 "use strict"
 
-import {
-    Vector
-} from './vectors.js';
-
 export const canvas = document.querySelector('canvas');
 export const c = canvas.getContext('2d');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
-export let mouse = new Vector(0, 0);
+export let mouse = {x:0, y:0};
 
 window.delta = 1000 / 60;
 

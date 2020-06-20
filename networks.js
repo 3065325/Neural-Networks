@@ -1,81 +1,86 @@
 "use strict"
 
 import {
-    Matrix
+    Matrix as M
 } from "./matrices.js"
 
 function sigmoid(x) {
-    return 1 / (1 + Math.pow(Math.E, -x));
+    return 1 / (1 + Math.exp(-x));
 }
 
-function Sigmoid(matrix) {
-    let M = new Array(matrix.components.length)
-    for (let i = 0; i < M.length; i++) {
-        let MRow = new Array(matrix.components[0].length)
-        for (let j = 0; j < MRow.length; j++) {
-            MRow[j] = sigmoid(matrix.components[i][j]);
-        }
-        M[i] = MRow;
-    }
-    return new Matrix(M);
+function pseudoSigmoidDer(x) {
+    return x * (1 - x);
 }
 
-class Network {
+export class NeuralNetwork {
     constructor() {
-        this.neuronAmounts = Array.from(arguments);
-        console.log(this.neuronAmounts)
+        this.layerAmounts = Array.from(arguments);
 
-        this.activations = new Array(this.neuronAmounts.length);
-        for (let i = 0; i < this.activations.length; i++) {
-            let activationsRow = new Array(this.neuronAmounts[i]);
-            for (let j = 0; j < activationsRow.length; j++) {
-                activationsRow[j] = [2 * (Math.random() - 0.5)];
-            }
-            this.activations[i] = new Matrix(activationsRow);
+        this.W = new Array(this.layerAmounts.length - 1);
+        for (let i = 0; i < this.W.length; i++) {
+            this.W[i] = M.toRandom(this.layerAmounts[i + 1], this.layerAmounts[i], -1, 1);
         }
-        console.log(this.activations)
 
-        this.biases = new Array(this.neuronAmounts.length - 1);
-        for (let i = 1; i <= this.biases.length; i++) {
-            let biasesRow = new Array(this.neuronAmounts[i]);
-            for (let j = 0; j < biasesRow.length; j++) {
-                biasesRow[j] = [2 * (Math.random() - 0.5)];
-            }
-            this.biases[i - 1] = new Matrix(biasesRow);
+        this.B = new Array(this.layerAmounts.length - 1);
+        for (let i = 0; i < this.B.length; i++) {
+            this.B[i] = M.toRandom(this.layerAmounts[i + 1], 1, -1, 1);
         }
-        console.log(this.biases)
-
-        this.weights = new Array(this.neuronAmounts.length - 1);
-        for (let i = 0; i < this.weights.length; i++) {
-            let currentLayer = this.neuronAmounts[i];
-            let nextLayer = this.neuronAmounts[i + 1];
-
-            let weights = new Array(nextLayer);
-            for (let j = 0; j < weights.length; j++) {
-                let weightsRow = new Array(currentLayer);
-
-                for (let k = 0; k < weightsRow.length; k++) {
-                    weightsRow[k] = 2 * (Math.random() - 0.5);
-                }
-                weights[j] = weightsRow;
-            }
-            this.weights[i] = new Matrix(weights);
-        }
-        console.log(this.weights)
     }
 
-    feedForward(layer) {
-        console.log(this.neuronAmounts.length)
-        if (layer >= this.neuronAmounts.length - 1) {
-            console.log(`Can't feed from layer ${layer} into non-existant layer ${layer + 1} when final layer is ${this.neuronAmounts.length - 1}`);
-            return;
+    feedForward(inputs) {
+        let A1 = new Array(this.layerAmounts.length);
+        A1[0] = M.toVector(inputs);
+
+        for (let i = 0; i < A1.length - 1; i++) {
+            A1[i + 1] = M.map(M.add(this.B[i], M.multM(this.W[i], A1[i])), sigmoid);
         }
 
-        let newActivations = Sigmoid(Matrix.add(Matrix.mult(this.weights[layer], this.activations[layer]), this.biases[layer]));
-        this.activations[layer + 1] = newActivations;
+        return A1;
+    }
+
+    backPropogate(activations, targets, learnRate) {
+        let A = activations;
+
+        let a1 = A[A.length - 1];
+        let a2 = A[A.length - 2];
+        let w = this.W[A.length - 2];
+        let b = this.B[A.length - 2];
+
+        let E = M.sub(M.toVector(targets), a1);
+
+        let G = M.multS(learnRate, M.multH(E, M.map(a1, pseudoSigmoidDer)));
+
+        let a2T = M.transpose(a2);
+        let dW = M.multM(G, a2T);
+        let dB = G
+        this.W[A.length - 2] = M.add(dW, w);
+        this.B[A.length - 2] = M.add(dB, b);
+
+        for (let i = A.length - 3; i >= 0; i--) {
+            a1 = A[i + 1];
+            a2 = A[i];
+            w = this.W[i];
+            b = this.B[i];
+
+            E = M.multM(M.transpose(this.W[i + 1]), E);
+
+            G = M.multS(learnRate, M.multH(E, M.map(a1, pseudoSigmoidDer)));
+
+            a2T = M.transpose(a2);
+            dW = M.multM(G, a2T);
+            dB = G;
+            this.W[i] = M.add(dW, w);
+            this.B[i] = M.add(dB, b);
+        }
+
+    }
+
+    train(inputs, targets, learnRate) {
+        this.backPropogate(this.feedForward(inputs), targets, learnRate);
+    }
+
+    feed(inputs) {
+        let A = this.feedForward(inputs);
+        return M.toArray(A[A.length-1]);
     }
 }
-
-let N = new Network(1, 16, 1);
-N.feedForward(0);
-N.feedForward(1);
